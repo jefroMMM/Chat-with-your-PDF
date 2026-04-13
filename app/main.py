@@ -125,7 +125,7 @@ async def ask_question(question: str = Form("")) -> JSONResponse:
         )
 
     try:
-        answer, chunks = document_manager.answer(question)
+        answer, chunks, out_of_context = document_manager.answer(question)
     except RuntimeError as exc:
         return JSONResponse(status_code=500, content={"ok": False, "error": str(exc)})
     except Exception as exc:
@@ -138,7 +138,8 @@ async def ask_question(question: str = Form("")) -> JSONResponse:
         content={
             "ok": True,
             "answer": answer,
-            "chunks": [
+            "out_of_context": out_of_context,
+            "chunks": [] if out_of_context else [
                 {"index": chunk.index, "content": chunk.content}
                 for chunk in chunks[:3]
             ],

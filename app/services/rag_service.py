@@ -21,6 +21,8 @@ from app.services.config import (
     TOP_K_RESULTS,
 )
 
+OUT_OF_CONTEXT_MESSAGE = "No hay información suficiente."
+
 
 @dataclass
 class ChunkRecord:
@@ -111,13 +113,17 @@ class DocumentManager:
         return state
 
     def retrieve(self, question: str, top_k: int = TOP_K_RESULTS) -> list[ChunkRecord]:
-        retrieved, _ = self.retrieve_with_scores(question, top_k=top_k)
+        retrieved, _, _ = self.retrieve_with_scores(question, top_k=top_k)
         return retrieved
 
-    def retrieve_with_scores(self, question: str, top_k: int = TOP_K_RESULTS) -> tuple[list[ChunkRecord], bool]:
+    def retrieve_with_scores(
+        self,
+        question: str,
+        top_k: int = TOP_K_RESULTS,
+    ) -> tuple[list[ChunkRecord], bool, float]:
         state = self.current()
         if not state.ready or state.vectorstore is None:
-            return [], False
+            return [], False, 0.0
 
         try:
             scored_results = state.vectorstore.similarity_search_with_relevance_scores(
@@ -132,10 +138,9 @@ class DocumentManager:
                 )
                 for i, (doc, score) in enumerate(scored_results)
             ]
-            has_enough_context = bool(chunks) and max(
-                (chunk.score or 0.0) for chunk in chunks
-            ) >= MIN_RELEVANCE_SCORE
-            return chunks, has_enough_context
+            best_score = max((chunk.score or 0.0) for chunk in chunks) if chunks else 0.0
+            is_relevant = bool(chunks) and best_score >= MIN_RELEVANCE_SCORE
+            return chunks, is_relevant, best_score
         except Exception:
             docs = state.vectorstore.similarity_search(question, k=top_k)
             chunks = [
@@ -146,32 +151,34 @@ class DocumentManager:
                 )
                 for i, doc in enumerate(docs)
             ]
-            return chunks, bool(chunks)
+            return chunks, False, 0.0
 
-    def answer(self, question: str, top_k: int = TOP_K_RESULTS) -> tuple[str, list[ChunkRecord]]:
+    def answer(self, question: str, top_k: int = TOP_K_RESULTS) -> tuple[str, list[ChunkRecord], bool]:
         self._ensure_openai_ready()
 
-        retrieved_chunks, has_enough_context = self.retrieve_with_scores(question, top_k=top_k)
-        if not retrieved_chunks or not has_enough_context:
-            return (
-                "No tengo contexto suficiente del PDF para responder con seguridad. "
-                "Revisa si la pregunta está relacionada con el contenido cargado o intenta formularla de otra forma.",
-                retrieved_chunks,
-            )
+        retrieved_chunks, has_context, _best_score = self.retrieve_with_scores(
+            question,
+            top_k=top_k,
+        )
+        usable_chunks = [chunk for chunk in retrieved_chunks if chunk.content.strip()]
+
+        if not usable_chunks or not has_context:
+            return OUT_OF_CONTEXT_MESSAGE, [], True
 
         context = "\n\n".join(
-            [f"Chunk {chunk.index}:\n{chunk.content}" for chunk in retrieved_chunks]
+            [f"Chunk {chunk.index}:\n{chunk.content}" for chunk in usable_chunks]
         )
 
         system_prompt = (
-            "Eres un asistente académico en español. Responde solo con la información del contexto del PDF. "
-            "Si el contexto no alcanza para responder, di explícitamente que no hay información suficiente. "
-            "No inventes datos, no supongas, no menciones que ves el PDF fuera del contexto proporcionado."
+            "Eres un asistente académico en español. Responde usando únicamente el contexto recuperado del PDF. "
+            "Si el contexto no alcanza para responder de forma precisa, responde exactamente con: "
+            f"\"{OUT_OF_CONTEXT_MESSAGE}\" "
+            "No inventes datos, no adivines y no uses conocimiento externo."
         )
         user_prompt = (
             f"Contexto recuperado:\n{context}\n\n"
             f"Pregunta del usuario: {question}\n\n"
-            "Redacta una respuesta clara, breve y útil."
+            "Redacta una respuesta clara, breve y útil basada solo en el contexto recuperado."
         )
 
         llm = ChatOpenAI(
@@ -185,8 +192,11 @@ class DocumentManager:
                 HumanMessage(content=user_prompt),
             ]
         )
-        return response.content.strip(), retrieved_chunks
+        answer_text = response.content.strip()
+        if not answer_text:
+            return OUT_OF_CONTEXT_MESSAGE, [], True
+
+        return answer_text, usable_chunks, False
 
 
 document_manager = DocumentManager()
-

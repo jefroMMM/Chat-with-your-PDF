@@ -10,6 +10,7 @@ const chatLog = document.getElementById("chat-log");
 const questionForm = document.getElementById("question-form");
 const questionInput = document.getElementById("question-input");
 const sendButton = document.getElementById("send-button");
+const chunksSection = document.getElementById("chunks-section");
 const chunksList = document.getElementById("chunks-list");
 const turnTemplate = document.getElementById("turn-template");
 const chunkTemplate = document.getElementById("chunk-template");
@@ -34,7 +35,7 @@ function renderEmptyConversation() {
 
 function showPdfEmptyState(show) {
   pdfEmptyState.style.display = show ? "grid" : "none";
-  pdfPages.style.display = show ? "none" : "block";
+  pdfPages.style.display = show ? "none" : "flex";
 }
 
 async function renderPdf(url) {
@@ -134,6 +135,7 @@ function syncState(state, message = "") {
 function clearConversation() {
   renderEmptyConversation();
   chunksList.innerHTML = "";
+  chunksSection.style.display = "";
   activeTurn = null;
 }
 
@@ -268,8 +270,18 @@ questionForm.addEventListener("submit", async (event) => {
       throw new Error(data.error || "No se pudo responder la pregunta.");
     }
 
-    updateTurn(activeTurn, data.answer, data.chunks || []);
+    const outOfContext = Boolean(data.out_of_context);
+
+    if (outOfContext) {
+      chunksSection.style.display = "none";
+      chunksList.innerHTML = "";
+      updateTurn(activeTurn, data.answer, [], false);
+    } else {
+      chunksSection.style.display = "";
+      updateTurn(activeTurn, data.answer, data.chunks || [], false);
+    }
   } catch (error) {
+    chunksSection.style.display = "";
     updateTurn(activeTurn, error.message, [], true);
   } finally {
     questionInput.disabled = !window.__INITIAL_STATE__?.ready;

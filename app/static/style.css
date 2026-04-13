@@ -182,6 +182,9 @@ body {
   overflow-y: auto;
   padding: 18px 0;
   background: #fafafa;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9fb0c4 #e9eef5;
 }
 
 .pdf-empty-state {
@@ -238,6 +241,9 @@ body {
   flex-direction: column;
   gap: 12px;
   padding-right: 2px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9fb0c4 #eef2f7;
 }
 
 .conversation-shell {
@@ -255,6 +261,9 @@ body {
   max-height: 100%;
   overflow-y: auto;
   padding-right: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9fb0c4 #eef2f7;
 }
 
 .turn-card {
@@ -333,6 +342,9 @@ body {
 .chunks-list {
   max-height: 26vh;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9fb0c4 #eef2f7;
 }
 
 .chunk-item {
@@ -374,6 +386,9 @@ body {
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9fb0c4 #eef2f7;
 }
 
 .empty-state {
@@ -438,6 +453,42 @@ textarea:focus {
 
 .success-message {
   color: var(--success);
+}
+
+.pdf-scroll::-webkit-scrollbar,
+.chat-scroll::-webkit-scrollbar,
+.chat-log::-webkit-scrollbar,
+.chunks-list::-webkit-scrollbar,
+.chunk-text::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.pdf-scroll::-webkit-scrollbar-track,
+.chat-scroll::-webkit-scrollbar-track,
+.chat-log::-webkit-scrollbar-track,
+.chunks-list::-webkit-scrollbar-track,
+.chunk-text::-webkit-scrollbar-track {
+  background: #eef2f7;
+  border-radius: 999px;
+}
+
+.pdf-scroll::-webkit-scrollbar-thumb,
+.chat-scroll::-webkit-scrollbar-thumb,
+.chat-log::-webkit-scrollbar-thumb,
+.chunks-list::-webkit-scrollbar-thumb,
+.chunk-text::-webkit-scrollbar-thumb {
+  background: #a9b9cb;
+  border-radius: 999px;
+  border: 3px solid #eef2f7;
+}
+
+.pdf-scroll::-webkit-scrollbar-thumb:hover,
+.chat-scroll::-webkit-scrollbar-thumb:hover,
+.chat-log::-webkit-scrollbar-thumb:hover,
+.chunks-list::-webkit-scrollbar-thumb:hover,
+.chunk-text::-webkit-scrollbar-thumb:hover {
+  background: #8599b0;
 }
 
 @media (max-width: 1180px) {
