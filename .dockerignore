@@ -1,0 +1,17 @@
+.git
+.gitignore
+.pytest_cache
+.mypy_cache
+.ruff_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+env
+.env
+*.log
+node_modules
+app/uploads/*
+!app/uploads/.gitkeep

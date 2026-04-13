@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat JM</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <script>
+    window.__INITIAL_STATE__ = {{ initial_state | safe }};
+  </script>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <h1>Chat JM</h1>
+    </header>
+
+    <section class="upload-bar">
+      <form id="upload-form" class="upload-form">
+        <label class="file-input">
+          <span>Elegir PDF</span>
+          <input type="file" id="pdf-file" accept="application/pdf,.pdf">
+        </label>
+        <button type="submit" class="button primary">Cargar PDF</button>
+      </form>
+      <p class="helper" id="upload-message">Aquí podrás cargar un solo PDF a la vez.</p>
+    </section>
+
+    <main class="workspace">
+      <section class="panel pdf-panel">
+        <div class="panel-header">
+          <div>
+            <h2>PDF cargado</h2>
+            <p class="muted">Fuente principal de información</p>
+          </div>
+        </div>
+
+        <div id="pdf-scroll" class="pdf-frame">
+          <div id="pdf-empty-state" class="pdf-empty-state">Aquí se mostrará el PDF cargado</div>
+          <div id="pdf-pages" class="pdf-pages" aria-label="Páginas del PDF"></div>
+        </div>
+      </section>
+
+      <section class="panel chat-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Conversación</h2>
+            <p class="muted">Preguntas y respuestas sobre el documento</p>
+          </div>
+        </div>
+
+        <div class="chat-scroll">
+          <div class="conversation-shell">
+          <div id="chat-log" class="chat-log"></div>
+          </div>
+
+          <section class="chunks-card">
+            <div class="panel-header compact">
+              <h3>Chunks recuperados</h3>
+              <span class="muted">Solo los 3 más relevantes</span>
+            </div>
+            <div id="chunks-list" class="chunks-list">
+              <p class="empty-state">Aquí aparecerán los fragmentos relevantes del PDF.</p>
+            </div>
+          </section>
+        </div>
+
+        <form id="question-form" class="question-form">
+          <textarea id="question-input" rows="3" placeholder="Escribe tu pregunta sobre el PDF..." disabled></textarea>
+          <button type="submit" class="button primary" id="send-button" disabled>Enviar</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <template id="turn-template">
+    <article class="turn-card">
+      <div class="bubble user-bubble">
+        <span class="turn-label">Pregunta</span>
+        <p class="turn-text turn-question-text"></p>
+      </div>
+      <div class="bubble assistant-bubble">
+        <span class="turn-label">Respuesta</span>
+        <p class="turn-text turn-answer-text"></p>
+      </div>
+    </article>
+  </template>
+
+  <template id="chunk-template">
+    <article class="chunk-item">
+      <div class="chunk-head">
+        <span class="chunk-title"></span>
+        <span class="chunk-score"></span>
+      </div>
+      <p class="chunk-text"></p>
+    </article>
+  </template>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  </script>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
