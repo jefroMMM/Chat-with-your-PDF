@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.services.config import MAX_UPLOAD_MB, UPLOAD_DIR
-from app.services.pdf_service import PDFProcessingError, extract_text_from_pdf, validate_pdf_filename
+from app.services.pdf_service import PDFProcessingError, extract_text_from_pdf_pages, validate_pdf_filename
 from app.services.rag_service import document_manager
 
 app = FastAPI(title="Chat con tu PDF", version="1.0.0")
@@ -74,33 +74,37 @@ async def upload_pdf(file: UploadFile | None = File(None)) -> JSONResponse:
             content={"ok": False, "error": f"El PDF supera el límite de {MAX_UPLOAD_MB} MB."},
         )
 
-    CURRENT_PDF_PATH.write_bytes(contents)
-
+    candidate_pdf_path = UPLOAD_DIR / "_incoming.pdf"
     try:
-        text = extract_text_from_pdf(CURRENT_PDF_PATH)
+        candidate_pdf_path.write_bytes(contents)
+
+        page_texts = extract_text_from_pdf_pages(candidate_pdf_path)
+        text = "\n\n".join(page_text for _, page_text in page_texts).strip()
         state = document_manager.ingest_text(
             filename=file.filename,
             pdf_path=str(CURRENT_PDF_PATH),
             text=text,
+            page_texts=page_texts,
         )
+        candidate_pdf_path.replace(CURRENT_PDF_PATH)
     except RuntimeError as exc:
-        document_manager.reset()
-        if CURRENT_PDF_PATH.exists():
-            CURRENT_PDF_PATH.unlink()
+        if candidate_pdf_path.exists():
+            candidate_pdf_path.unlink()
         return JSONResponse(status_code=500, content={"ok": False, "error": str(exc)})
     except PDFProcessingError as exc:
-        document_manager.reset()
-        if CURRENT_PDF_PATH.exists():
-            CURRENT_PDF_PATH.unlink()
+        if candidate_pdf_path.exists():
+            candidate_pdf_path.unlink()
         return JSONResponse(status_code=400, content={"ok": False, "error": str(exc)})
     except Exception as exc:
-        document_manager.reset()
-        if CURRENT_PDF_PATH.exists():
-            CURRENT_PDF_PATH.unlink()
+        if candidate_pdf_path.exists():
+            candidate_pdf_path.unlink()
         return JSONResponse(
             status_code=500,
             content={"ok": False, "error": f"Error procesando el PDF: {exc}"},
         )
+
+    if candidate_pdf_path.exists():
+        candidate_pdf_path.unlink()
 
     return JSONResponse(
         content={
@@ -140,8 +144,8 @@ async def ask_question(question: str = Form("")) -> JSONResponse:
             "answer": answer,
             "out_of_context": out_of_context,
             "chunks": [] if out_of_context else [
-                {"index": chunk.index, "content": chunk.content}
-                for chunk in chunks[:3]
+                {"index": chunk.index, "page": chunk.page, "content": chunk.content}
+                for chunk in chunks[:4]
             ],
         }
     )

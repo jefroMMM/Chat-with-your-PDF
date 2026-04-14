@@ -15,12 +15,13 @@ const chunksList = document.getElementById("chunks-list");
 const turnTemplate = document.getElementById("turn-template");
 const chunkTemplate = document.getElementById("chunk-template");
 
-const MAX_VISIBLE_CHUNKS = 3;
+const MAX_VISIBLE_CHUNKS = 4;
 
 let activeTurn = null;
 let currentPdfUrl = null;
 let currentPdfDoc = null;
 let renderGeneration = 0;
+let lastQuestionText = "";
 
 function renderEmptyConversation() {
   chatLog.innerHTML = "";
@@ -144,6 +145,8 @@ function createTurn(question) {
     chatLog.innerHTML = "";
   }
 
+  lastQuestionText = question;
+
   const node = turnTemplate.content.cloneNode(true);
   const questionEl = node.querySelector(".turn-question-text");
   const answerEl = node.querySelector(".turn-answer-text");
@@ -162,6 +165,51 @@ function normalizeChunkText(text) {
   return String(text || "").replace(/\s+/g, " ").trim();
 }
 
+function buildSearchTerms(text) {
+  return normalizeChunkText(text)
+    .toLowerCase()
+    .split(/[^a-z0-9áéíóúñü]+/i)
+    .map((term) => term.trim())
+    .filter((term) => term.length > 2);
+}
+
+function excerptChunkText(text, maxLength = 220, queryText = "") {
+  const normalized = normalizeChunkText(text);
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  const queryTerms = buildSearchTerms(queryText);
+  const lowerText = normalized.toLowerCase();
+  let anchorIndex = -1;
+
+  for (const term of queryTerms) {
+    const index = lowerText.indexOf(term);
+    if (index !== -1 && (anchorIndex === -1 || index < anchorIndex)) {
+      anchorIndex = index;
+    }
+  }
+
+  if (anchorIndex !== -1) {
+    const halfWindow = Math.floor(maxLength / 2);
+    let start = Math.max(0, anchorIndex - halfWindow);
+    let end = Math.min(normalized.length, start + maxLength);
+    if (end - start < maxLength) {
+      start = Math.max(0, end - maxLength);
+    }
+
+    const windowText = normalized.slice(start, end).trim();
+    if (windowText.length >= 40) {
+      return windowText.length === normalized.length ? windowText : `${windowText}...`;
+    }
+  }
+
+  const sliced = normalized.slice(0, maxLength);
+  const lastSpace = sliced.lastIndexOf(" ");
+  const excerpt = lastSpace > 120 ? sliced.slice(0, lastSpace) : sliced;
+  return `${excerpt.trim()}...`;
+}
+
 function renderChunkList(container, chunks) {
   container.innerHTML = "";
   const visibleChunks = (chunks || []).slice(0, MAX_VISIBLE_CHUNKS);
@@ -177,14 +225,12 @@ function renderChunkList(container, chunks) {
   visibleChunks.forEach((chunk, index) => {
     const node = chunkTemplate.content.cloneNode(true);
     const title = node.querySelector(".chunk-title");
-    const score = node.querySelector(".chunk-score");
+    const page = node.querySelector(".chunk-page");
     const text = node.querySelector(".chunk-text");
-    const scoreText =
-      typeof chunk.score === "number" ? `${Math.round(chunk.score * 100)}%` : "";
 
     title.textContent = `Chunk ${index + 1}`;
-    score.textContent = scoreText;
-    text.textContent = normalizeChunkText(chunk.content);
+    page.textContent = `Página ${chunk.page ?? "?"}`;
+    text.textContent = excerptChunkText(chunk.content, 220, lastQuestionText);
     container.appendChild(node);
   });
 }

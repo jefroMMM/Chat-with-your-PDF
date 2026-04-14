@@ -351,8 +351,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 132px;
-  max-height: 150px;
+  min-height: 108px;
+  max-height: 132px;
   padding: 10px 12px;
   overflow: hidden;
 }
@@ -372,23 +372,22 @@ body {
   color: var(--accent-alt);
 }
 
-.chunk-score {
+.chunk-page {
   font-size: 0.78rem;
   color: var(--muted);
 }
 
 .chunk-text {
   flex: 1;
-  overflow-y: auto;
-  padding-right: 4px;
   font-size: 0.93rem;
   line-height: 1.55;
-  white-space: normal;
   overflow-wrap: anywhere;
   word-break: normal;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
-  scrollbar-color: #9fb0c4 #eef2f7;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
 }
 
 .empty-state {
